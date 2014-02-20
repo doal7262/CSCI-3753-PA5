@@ -3,6 +3,8 @@
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
 
   Minor modifications and note by Andy Sayler (2012) <www.andysayler.com>
+  
+  More modifications by Taylor Andrews (2014) <github.com/taylorjandrews>
 
   Source: fuse-2.8.7.tar.gz examples directory
   http://sourceforge.net/projects/fuse/files/fuse-2.X/
@@ -46,10 +48,14 @@
 #include <sys/xattr.h>
 #endif
 
-static void encfs_fullpath()
+/*
+static void encfs_fullpath(char fpath[PATH_MAX], const char *path)
 {
-	//code to create the full path of the file
+    strcpy(fpath, BB_DATA->rootdir);
+    strncat(fpath, path, PATH_MAX); // ridiculously long paths will
+				    // break here
 }
+*/
 
 static int encfs_getattr(const char *path, struct stat *stbuf)
 {
