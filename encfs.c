@@ -44,22 +44,30 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <limits.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
 
-/*
+typedef struct {
+    char *rootdir;
+} encfs_state;
+
+
 static void encfs_fullpath(char fpath[PATH_MAX], const char *path)
 {
-    strcpy(fpath, BB_DATA->rootdir);
-    strncat(fpath, path, PATH_MAX); // ridiculously long paths will
-				    // break here
+    encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
+    strcpy(fpath, state->rootdir);
+    strncat(fpath, path, PATH_MAX); 
 }
-*/
+
 
 static int encfs_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	res = lstat(path, stbuf);
 	if (res == -1)
@@ -422,5 +430,10 @@ static struct fuse_operations encfs_oper = {
 int main(int argc, char *argv[])
 {
 	umask(0);
+	
+	encfs_state state;
+	
+	state.rootdir = realpath(argv[2], NULL);
+	
 	return fuse_main(argc, argv, &encfs_oper, NULL);
 }
