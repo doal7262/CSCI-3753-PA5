@@ -14,7 +14,7 @@ CFLAGSFUSE   = `pkg-config fuse --cflags`
 LLIBSFUSE    = `pkg-config fuse --libs`
 LLIBSOPENSSL = -lcrypto
 
-CFLAGS = -c -g -Wall -Wextra
+CFLAGS = -c -g -Wall -Wextra -D_FILE_OFFSET_BITS=64
 LFLAGS = -g -Wall -Wextra
 
 ENCRYPTED = encfs

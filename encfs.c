@@ -83,7 +83,7 @@ static int encfs_access(const char *path, int mask)
 	
 	encfs_fullpath(fpath, path);
 
-	res = access(path, mask);
+	res = access(fpath, mask);
 	if (res == -1)
 		return -errno;
 
@@ -97,7 +97,7 @@ static int encfs_readlink(const char *path, char *buf, size_t size)
 	
 	encfs_fullpath(fpath, path);
 
-	res = readlink(path, buf, size - 1);
+	res = readlink(fpath, buf, size - 1);
 	if (res == -1)
 		return -errno;
 
@@ -105,17 +105,20 @@ static int encfs_readlink(const char *path, char *buf, size_t size)
 	return 0;
 }
 
-//NEEDS TO BE EDITED TO WORK!
 static int encfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
 	DIR *dp;
 	struct dirent *de;
+	
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	(void) offset;
 	(void) fi;
 
-	dp = opendir(path);
+	dp = opendir(fpath);
 	if (dp == NULL)
 		return -errno;
 
@@ -142,13 +145,13 @@ static int encfs_mknod(const char *path, mode_t mode, dev_t rdev)
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
 	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
+		res = open(fpath, O_CREAT | O_EXCL | O_WRONLY, mode);
 		if (res >= 0)
 			res = close(res);
 	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
+		res = mkfifo(fpath, mode);
 	else
-		res = mknod(path, mode, rdev);
+		res = mknod(fpath, mode, rdev);
 	if (res == -1)
 		return -errno;
 
@@ -313,9 +316,13 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int fd;
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	(void) fi;
-	fd = open(path, O_RDONLY);
+	
+	fd = open(fpath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
 
@@ -333,9 +340,12 @@ static int encfs_write(const char *path, const char *buf, size_t size,
 {
 	int fd;
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	(void) fi;
-	fd = open(path, O_WRONLY);
+	fd = open(fpath, O_WRONLY);
 	if (fd == -1)
 		return -errno;
 
@@ -363,11 +373,14 @@ static int encfs_statfs(const char *path, struct statvfs *stbuf)
 
 //NEEDS TO BE EDITED TO WORK?
 static int encfs_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 	
     (void) fi;
 
     int res;
-    res = creat(path, mode);
+    res = creat(fpath, mode);
     if(res == -1)
 	return -errno;
 
@@ -485,11 +498,7 @@ static struct fuse_operations encfs_oper = {
 
 int main(int argc, char *argv[])
 {
-	umask(0);
-	
-	encfs_state state;
-	
-	state.rootdir = realpath(argv[2], NULL);
+	umask(0);	
 	
 	return fuse_main(argc, argv, &encfs_oper, NULL);
 }
