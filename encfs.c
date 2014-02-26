@@ -79,6 +79,9 @@ static int encfs_getattr(const char *path, struct stat *stbuf)
 static int encfs_access(const char *path, int mask)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	res = access(path, mask);
 	if (res == -1)
@@ -90,6 +93,9 @@ static int encfs_access(const char *path, int mask)
 static int encfs_readlink(const char *path, char *buf, size_t size)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	res = readlink(path, buf, size - 1);
 	if (res == -1)
@@ -99,7 +105,7 @@ static int encfs_readlink(const char *path, char *buf, size_t size)
 	return 0;
 }
 
-
+//NEEDS TO BE EDITED TO WORK!
 static int encfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		       off_t offset, struct fuse_file_info *fi)
 {
@@ -129,6 +135,9 @@ static int encfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int encfs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
@@ -149,8 +158,11 @@ static int encfs_mknod(const char *path, mode_t mode, dev_t rdev)
 static int encfs_mkdir(const char *path, mode_t mode)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = mkdir(path, mode);
+	res = mkdir(fpath, mode);
 	if (res == -1)
 		return -errno;
 
@@ -160,8 +172,11 @@ static int encfs_mkdir(const char *path, mode_t mode)
 static int encfs_unlink(const char *path)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = unlink(path);
+	res = unlink(fpath);
 	if (res == -1)
 		return -errno;
 
@@ -171,8 +186,11 @@ static int encfs_unlink(const char *path)
 static int encfs_rmdir(const char *path)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = rmdir(path);
+	res = rmdir(fpath);
 	if (res == -1)
 		return -errno;
 
@@ -215,8 +233,11 @@ static int encfs_link(const char *from, const char *to)
 static int encfs_chmod(const char *path, mode_t mode)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = chmod(path, mode);
+	res = chmod(fpath, mode);
 	if (res == -1)
 		return -errno;
 
@@ -226,8 +247,11 @@ static int encfs_chmod(const char *path, mode_t mode)
 static int encfs_chown(const char *path, uid_t uid, gid_t gid)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = lchown(path, uid, gid);
+	res = lchown(fpath, uid, gid);
 	if (res == -1)
 		return -errno;
 
@@ -237,8 +261,11 @@ static int encfs_chown(const char *path, uid_t uid, gid_t gid)
 static int encfs_truncate(const char *path, off_t size)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = truncate(path, size);
+	res = truncate(fpath, size);
 	if (res == -1)
 		return -errno;
 
@@ -249,13 +276,16 @@ static int encfs_utimens(const char *path, const struct timespec ts[2])
 {
 	int res;
 	struct timeval tv[2];
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
 	tv[0].tv_sec = ts[0].tv_sec;
 	tv[0].tv_usec = ts[0].tv_nsec / 1000;
 	tv[1].tv_sec = ts[1].tv_sec;
 	tv[1].tv_usec = ts[1].tv_nsec / 1000;
 
-	res = utimes(path, tv);
+	res = utimes(fpath, tv);
 	if (res == -1)
 		return -errno;
 
@@ -265,8 +295,11 @@ static int encfs_utimens(const char *path, const struct timespec ts[2])
 static int encfs_open(const char *path, struct fuse_file_info *fi)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = open(path, fi->flags);
+	res = open(fpath, fi->flags);
 	if (res == -1)
 		return -errno;
 
@@ -274,6 +307,7 @@ static int encfs_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
+//NEEDS TO BE EDITED TO WORK
 static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
@@ -293,6 +327,7 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	return res;
 }
 
+//NEEDS TO BE EDITED TO WORK
 static int encfs_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
@@ -315,16 +350,20 @@ static int encfs_write(const char *path, const char *buf, size_t size,
 static int encfs_statfs(const char *path, struct statvfs *stbuf)
 {
 	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
 
-	res = statvfs(path, stbuf);
+	res = statvfs(fpath, stbuf);
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
+//NEEDS TO BE EDITED TO WORK?
 static int encfs_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
-
+	
     (void) fi;
 
     int res;
@@ -364,7 +403,12 @@ static int encfs_fsync(const char *path, int isdatasync,
 static int encfs_setxattr(const char *path, const char *name, const char *value,
 			size_t size, int flags)
 {
-	int res = lsetxattr(path, name, value, size, flags);
+	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
+	
+	res = lsetxattr(fpath, name, value, size, flags);
 	if (res == -1)
 		return -errno;
 	return 0;
@@ -373,7 +417,11 @@ static int encfs_setxattr(const char *path, const char *name, const char *value,
 static int encfs_getxattr(const char *path, const char *name, char *value,
 			size_t size)
 {
-	int res = lgetxattr(path, name, value, size);
+	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
+	res = lgetxattr(fpath, name, value, size);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -381,7 +429,11 @@ static int encfs_getxattr(const char *path, const char *name, char *value,
 
 static int encfs_listxattr(const char *path, char *list, size_t size)
 {
-	int res = llistxattr(path, list, size);
+	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
+	res = llistxattr(fpath, list, size);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -389,7 +441,11 @@ static int encfs_listxattr(const char *path, char *list, size_t size)
 
 static int encfs_removexattr(const char *path, const char *name)
 {
-	int res = lremovexattr(path, name);
+	int res;
+	char fpath[PATH_MAX];
+	
+	encfs_fullpath(fpath, path);
+	res = lremovexattr(fpath, name);
 	if (res == -1)
 		return -errno;
 	return 0;
