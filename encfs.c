@@ -503,6 +503,5 @@ int main(int argc, char *argv[])
 	
 	state.rootdir = realpath(argv[2], NULL);
 	
-	/*return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);*/
 	return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);
 }
