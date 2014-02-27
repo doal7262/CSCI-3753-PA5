@@ -39,6 +39,7 @@
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -69,7 +70,7 @@ static int encfs_getattr(const char *path, struct stat *stbuf)
 	
 	encfs_fullpath(fpath, path);
 
-	res = lstat(path, stbuf);
+	res = lstat(fpath, stbuf);
 	if (res == -1)
 		return -errno;
 
@@ -310,7 +311,7 @@ static int encfs_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-//NEEDS TO BE EDITED TO WORK
+
 static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
@@ -334,7 +335,6 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	return res;
 }
 
-//NEEDS TO BE EDITED TO WORK
 static int encfs_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
@@ -371,7 +371,7 @@ static int encfs_statfs(const char *path, struct statvfs *stbuf)
 	return 0;
 }
 
-//NEEDS TO BE EDITED TO WORK?
+
 static int encfs_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
 	char fpath[PATH_MAX];
 	
@@ -499,6 +499,10 @@ static struct fuse_operations encfs_oper = {
 int main(int argc, char *argv[])
 {
 	umask(0);	
+	encfs_state state;
 	
-	return fuse_main(argc, argv, &encfs_oper, NULL);
+	state.rootdir = realpath(argv[2], NULL);
+	
+	/*return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);*/
+	return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);
 }
