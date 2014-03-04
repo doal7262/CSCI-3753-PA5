@@ -36,7 +36,7 @@
 
 #ifdef linux
 /* For pread()/pwrite() */
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 700
 #endif
 
 #include <fuse.h>
@@ -329,12 +329,14 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	char *memtext;
 	size_t memsize;
 	int res;
-	int doCrypt = AES_ENCRYPT;
+	int doCrypt = AES_DECRYPT;
 	char fpath[PATH_MAX];
 	
 	encfs_fullpath(fpath, path);
 
 	(void) fi;
+	
+	fprintf(stderr, "Start of read\n");
 	
 	f = fopen (fpath, "r");
 	memfile = open_memstream(&memtext, &memsize);
@@ -342,8 +344,14 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	if((f == NULL) || (memfile == NULL))
 		return -errno;
 	
+	fprintf(stderr, "Post opens\n");
+	
 	encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
+	fprintf(stderr, "pass = %s\n", state->passPhrase);
+	
 	do_crypt(f, memfile, doCrypt, state->passPhrase);
+	
+	fprintf(stderr, "After decrypt\n");
 	
 	fclose(f);
 	
@@ -354,6 +362,8 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	
 	if(res == -1)
 		return -errno;
+		
+	fprintf(stderr, "End of read\n");
 		
 	return res;
 }
@@ -555,7 +565,7 @@ int main(int argc, char *argv[])
 	 }
 	 
 	state.rootdir = realpath(argv[3], NULL);
-	state.passPhrase = argv[1];
+	state.passPhrase = argv[2];
 	
 	return fuse_main(argc - 3, argv + 3, &encfs_oper, &state);
 }
