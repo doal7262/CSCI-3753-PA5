@@ -17,7 +17,6 @@ LLIBSOPENSSL = -lcrypto
 CFLAGS = -c -g -Wall -Wextra -D_FILE_OFFSET_BITS=64
 LFLAGS = -g -Wall -Wextra
 
-ENCRYPTED = encfs
 FUSE_EXAMPLES = fusehello fusexmp 
 XATTR_EXAMPLES = xattr-util
 OPENSSL_EXAMPLES = aes-crypt-util 
@@ -26,14 +25,13 @@ OPENSSL_EXAMPLES = aes-crypt-util
 
 all: encfs fuse-examples xattr-examples openssl-examples
 
-encfs: $(ENCRYPTED)
 fuse-examples: $(FUSE_EXAMPLES)
 xattr-examples: $(XATTR_EXAMPLES)
 openssl-examples: $(OPENSSL_EXAMPLES)
 
 encfs: encfs.o aes-crypt.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE) $(LLIBSOPENSSL)
-	
+
 fusehello: fusehello.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE)
 
@@ -45,7 +43,7 @@ xattr-util: xattr-util.o
 
 aes-crypt-util: aes-crypt-util.o aes-crypt.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSOPENSSL)
-	
+
 encfs.o: encfs.c
 	$(CC) $(CFLAGS) $(CFLAGSFUSE) $<
 
