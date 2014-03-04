@@ -25,6 +25,9 @@
 */
 
 #define FUSE_USE_VERSION 28
+#define AES_ENCRYPT 1
+#define AES_DECRYPT 0
+#define AES_PASSTHRU -1
 #define HAVE_SETXATTR
 
 #ifdef HAVE_CONFIG_H
@@ -45,13 +48,21 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <stddef.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <limits.h>
+#include <sys/xattr.h>
+
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
 #endif
 
+#include "aes-crypt.h"
+
 typedef struct {
     char *rootdir;
+    char *passPhrase;
 } encfs_state;
 
 
@@ -311,49 +322,81 @@ static int encfs_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-
 static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 		    struct fuse_file_info *fi)
 {
-	int fd;
+	FILE *f, *memfile;
+	char *memtext;
+	size_t memsize;
 	int res;
+	int doCrypt = AES_ENCRYPT;
 	char fpath[PATH_MAX];
 	
 	encfs_fullpath(fpath, path);
 
 	(void) fi;
 	
-	fd = open(fpath, O_RDONLY);
-	if (fd == -1)
+	f = fopen (fpath, "r");
+	memfile = open_memstream(&memtext, &memsize);
+	
+	if((f == NULL) || (memfile == NULL))
 		return -errno;
-
-	res = pread(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
-	close(fd);
+	
+	encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
+	do_crypt(f, memfile, doCrypt, state->passPhrase);
+	
+	fclose(f);
+	
+	fflush(memfile);
+	fseek(memfile, offset, SEEK_SET);
+	res = fread(buf, 1, size, memfile);
+	fclose(memfile);
+	
+	if(res == -1)
+		return -errno;
+		
 	return res;
 }
 
 static int encfs_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
-	int fd;
+	FILE *f, *memfile;
+	char *memtext;
+	size_t memsize;
 	int res;
 	char fpath[PATH_MAX];
 	
 	encfs_fullpath(fpath, path);
-
+	
 	(void) fi;
-	fd = open(fpath, O_WRONLY);
-	if (fd == -1)
-		return -errno;
+	
+	encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
 
-	res = pwrite(fd, buf, size, offset);
+	f = fopen(fpath, "r");
+	memfile = open_memstream(&memtext, &memsize);
+	
+	if((f == NULL) || (memfile == NULL))
+		return -errno;
+	
+	do_crypt(f, memfile, AES_DECRYPT, state->passPhrase);
+	fclose(f);
+	
+	fseek(memfile, offset, SEEK_SET);
+
+	res = fwrite(buf, 1, size, memfile);
 	if (res == -1)
 		res = -errno;
-
-	close(fd);
+		
+	fflush(memfile);
+	
+	f = fopen(fpath, "w");
+	fseek(memfile, 0, SEEK_SET);
+	do_crypt(memfile, f, AES_ENCRYPT, state->passPhrase);
+	
+	fclose(memfile);
+	fclose(f);
+	
 	return res;
 }
 
@@ -371,20 +414,23 @@ static int encfs_statfs(const char *path, struct statvfs *stbuf)
 	return 0;
 }
 
-
 static int encfs_create(const char* path, mode_t mode, struct fuse_file_info* fi) {
+	(void) fi;
+	(void) mode;
+	
 	char fpath[PATH_MAX];
+	FILE *res, *temp = tmpfile();
+	encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
 	
 	encfs_fullpath(fpath, path);
-	
-    (void) fi;
+	res = fopen(fpath, "w");
 
-    int res;
-    res = creat(fpath, mode);
-    if(res == -1)
-	return -errno;
-
-    close(res);
+	if(res == NULL)
+		return -errno;
+		
+	do_crypt(temp, res, AES_ENCRYPT, state->passPhrase);
+	fclose(temp);
+	fclose(res);	
 
     return 0;
 }
@@ -501,7 +547,15 @@ int main(int argc, char *argv[])
 	umask(0);	
 	encfs_state state;
 	
-	state.rootdir = realpath(argv[2], NULL);
+	if(argc < 4)
+	{
+		fprintf(stderr, "usage: %s %s\n", argv[0],
+		    "<Encrypt Action> <Key Phrase> <Mirrow Directory> <Mount Point>");
+		 return 1;
+	 }
+	 
+	state.rootdir = realpath(argv[3], NULL);
+	state.passPhrase = argv[1];
 	
-	return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);
+	return fuse_main(argc - 3, argv + 3, &encfs_oper, &state);
 }
