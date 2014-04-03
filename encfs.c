@@ -29,6 +29,9 @@
 #define AES_DECRYPT 0
 #define AES_PASSTHRU -1
 #define HAVE_SETXATTR
+#define ENCRYPTED_ATTR "user.encfs.encrypted"
+#define ENCRYPTED "true"
+#define UNENCRPTED "false"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -329,29 +332,32 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	char *memtext;
 	size_t memsize;
 	int res;
-	int doCrypt = AES_DECRYPT;
+	int doCrypt = AES_PASSTHRU;
 	char fpath[PATH_MAX];
+	char xattr_val[8];
+	ssize_t xattr_len;
 	
 	encfs_fullpath(fpath, path);
 
 	(void) fi;
 	
-	fprintf(stderr, "Start of read\n");
-	
 	f = fopen (fpath, "r");
 	memfile = open_memstream(&memtext, &memsize);
 	
-	if((f == NULL) || (memfile == NULL))
+	if(f == NULL) 
+		return -errno;
+	if(memfile == NULL)
 		return -errno;
 	
-	fprintf(stderr, "Post opens\n");
+	xattr_len = getxattr(fpath, ENCRYPTED_ATTR, xattr_val, 8);
+	
+	if(xattr_len != -1 && !memcmp(xattr_val, ENCRYPTED, 4))
+		doCrypt = AES_DECRYPT;
 	
 	encfs_state *state = (encfs_state *) (fuse_get_context()->private_data);
 	fprintf(stderr, "pass = %s\n", state->passPhrase);
 	
 	do_crypt(f, memfile, doCrypt, state->passPhrase);
-	
-	fprintf(stderr, "After decrypt\n");
 	
 	fclose(f);
 	
@@ -363,7 +369,6 @@ static int encfs_read(const char *path, char *buf, size_t size, off_t offset,
 	if(res == -1)
 		return -errno;
 		
-	fprintf(stderr, "End of read\n");
 		
 	return res;
 }
@@ -376,6 +381,9 @@ static int encfs_write(const char *path, const char *buf, size_t size,
 	size_t memsize;
 	int res;
 	char fpath[PATH_MAX];
+	int doCrypt = AES_PASSTHRU;
+	char xattr_val[8];
+	ssize_t xattr_len;
 	
 	encfs_fullpath(fpath, path);
 	
@@ -388,6 +396,11 @@ static int encfs_write(const char *path, const char *buf, size_t size,
 	
 	if((f == NULL) || (memfile == NULL))
 		return -errno;
+		
+	xattr_len = getxattr(fpath, ENCRYPTED_ATTR, xattr_val, 8);
+	
+	if(xattr_len != -1 && !memcmp(xattr_val, ENCRYPTED, 4))
+		doCrypt = AES_DECRYPT;
 	
 	do_crypt(f, memfile, AES_DECRYPT, state->passPhrase);
 	fclose(f);
@@ -400,9 +413,12 @@ static int encfs_write(const char *path, const char *buf, size_t size,
 		
 	fflush(memfile);
 	
+	if(doCrypt == AES_DECRYPT)
+		doCrypt = AES_ENCRYPT;
+	
 	f = fopen(fpath, "w");
 	fseek(memfile, 0, SEEK_SET);
-	do_crypt(memfile, f, AES_ENCRYPT, state->passPhrase);
+	do_crypt(memfile, f, doCrypt, state->passPhrase);
 	
 	fclose(memfile);
 	fclose(f);
@@ -440,6 +456,10 @@ static int encfs_create(const char* path, mode_t mode, struct fuse_file_info* fi
 		
 	do_crypt(temp, res, AES_ENCRYPT, state->passPhrase);
 	fclose(temp);
+	
+	if(fsetxattr(fileno(res), ENCRYPTED_ATTR, "true", 4, 0))
+		return -errno;
+	
 	fclose(res);	
 
     return 0;
@@ -560,12 +580,12 @@ int main(int argc, char *argv[])
 	if(argc < 4)
 	{
 		fprintf(stderr, "usage: %s %s\n", argv[0],
-		    "<Encrypt Action> <Key Phrase> <Mirrow Directory> <Mount Point>");
+		    "<Key Phrase> <Mirrow Directory> <Mount Point>");
 		 return 1;
 	 }
 	 
-	state.rootdir = realpath(argv[3], NULL);
-	state.passPhrase = argv[2];
+	state.rootdir = realpath(argv[2], NULL);
+	state.passPhrase = argv[1];
 	
-	return fuse_main(argc - 3, argv + 3, &encfs_oper, &state);
+	return fuse_main(argc - 2, argv + 2, &encfs_oper, &state);
 }
