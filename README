@@ -45,7 +45,7 @@ aes-crypt.h      - Basic AES file encryption library interface
 aes-crypt.c      - Basic AES file encryption library implementation
 
 ---Executables---
-pa5-encfs      - Mounting executable for mirroring FUSE filesystem with encryption and decryption
+pa5-encfs      - Mounting executable for mirroring FUSE filesystem with encryption
 
 ---Examples---
 
