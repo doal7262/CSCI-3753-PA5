@@ -580,8 +580,8 @@ int main(int argc, char *argv[])
 	if(argc < 4)
 	{
 		fprintf(stderr, "usage: %s %s\n", argv[0],
-		    "<Key Phrase> <Mirrow Directory> <Mount Point>");
-		 return 1;
+		    "<Key Phrase> <Mirror Directory> <Mount Point>");
+		return 1;
 	 }
 	 
 	state.rootdir = realpath(argv[2], NULL);
