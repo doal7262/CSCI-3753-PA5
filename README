@@ -14,6 +14,8 @@ Inspired by work from Chris Wailes - 2010
 With help from:
 Junho Ahn - 2012
 
+Modified by Taylor Andrews - 2015
+
 Various files adopted from other exiting work.
 See file comments for specific details and references.
 
@@ -38,6 +40,7 @@ handout - Assignment description and documentation
 ---Files---
 Makefile         - GNU makefile to build all relevant code
 README           - This file
+pa5-encfs.c      - FUSE mirroring file system with encryption and decryption
 fusehello.c      - Basic "Hello World" FUSE example
 fusexmp.c        - Basic FUSE mirrored filesystem example (mirrors /)
 xattr-util.c     - Basic Extended Attribute manipulation program
@@ -46,14 +49,7 @@ aes-crypt.h      - Basic AES file encryption library interface
 aes-crypt.c      - Basic AES file encryption library implementation
 
 ---Executables---
-fusehello      - Mounting executable for "Hello World" FUSE filesystem example
-fusexmp        - Mounting executable for root (\) mirror FUSE filesystem example
-xattr-util     - A simple program for manipulating extended attributes
-aes-crypt-util - A simple program for encrypting, decrypting, or copying files
-
----Documentation---
-handout/pa5.pdf             - Assignment Instructions and Tips
-http://youtu.be/VrMi6RaUNDs - Assignment Explanation Video 1
+pa5-encfs      - Mounting executable for mirroring FUSE filesystem with encryption and decryption
 
 ---Examples---
 
@@ -62,56 +58,15 @@ http://youtu.be/VrMi6RaUNDs - Assignment Explanation Video 1
 Build All:
  make
 
-Build Fuse Examples and Utilities:
- make fuse-examples
-
-Build xattr Examples and Utilities:
- make xattr-examples
-
-Build OpenSSL/AES Examples and Utilities:
- make openssl-examples
-
 Clean:
  make clean
 
-***FUSE Examples***
+***pa5-encfs***
+Mount pa5-encfs in Debug Mode on existing empty directory with a passphrase 
+ ./pa5-encfs -d <Key> <Mirror Directory> <Mount Point>
 
-Mount fusehello on new directory
- mkdir <Mount Point>
- ./fusehello <Mount Point>
-
-Mount fusehello in Debug Mode on existing empty directory
- ./fusehello -d <Mount Point>
-
-Mount fusexmp on existing directory and list (ls) mirrored root directory (/)
- ./fusexmp <Mount Point>
- ls <Mount Point>
+Mount pa5-encfs on existing directory with a passphrase 
+ ./pa5-encfs <Key> <Mirror Directory> <Mount Point>
 
 Unmount a FUSE filesystem
  fusermount -u <Mount Point>
-
-***OpenSSL Examples***
-
-Copy FileA to FileB:
- ./aes-crypt-util -c <FileA Path> <FileB Path>
-
-Encrypt FileA to FileB using Passphrase:
- ./aes-crypt-util -e <Passphrase> <FileA Path> <FileB Path>
-
-Decrypt FileA to FileB using Passphrase:
-(Note: error if FileA not encrypted with aes-crypt.h or if passphrase is wrong)
- ./aes-crypt-util -d <Passphrase> <FileA Path> <FileB Path>
-
-***xattr Examples***
-
-List attributes set on a file
- ./xattr-util -l <File Path>
-
-Set/Write attribute on a file
- ./xattr-util -s <Attr Name> <Attr Value> <File Path>
-
-Get/Read attribute from a file
- ./xattr-util -g <Attr Name> <File Path>
-
-Remove attribute from a file
- ./xattr-util -r <Attr Name> <File Path>
